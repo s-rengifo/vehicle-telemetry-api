@@ -27,6 +27,10 @@ public class Vehicle {
     @Column(nullable = false)
     private String vehicleType; // CAR, TRUCK...
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Double speedThresholdKmh = 120.0; // default 120 km/h
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime registeredAt;
 
