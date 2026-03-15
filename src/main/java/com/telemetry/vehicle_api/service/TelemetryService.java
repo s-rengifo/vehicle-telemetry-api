@@ -1,8 +1,10 @@
 package com.telemetry.vehicle_api.service;
 
 import com.telemetry.vehicle_api.dto.*;
+import com.telemetry.vehicle_api.model.SpeedAlert;
 import com.telemetry.vehicle_api.model.TelemetryEvent;
 import com.telemetry.vehicle_api.model.Vehicle;
+import com.telemetry.vehicle_api.repository.SpeedAlertRepository;
 import com.telemetry.vehicle_api.repository.TelemetryRepository;
 import com.telemetry.vehicle_api.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class TelemetryService {
 
+    private final SpeedAlertRepository speedAlertRepository;
     private final TelemetryRepository telemetryRepository;
     private final VehicleRepository vehicleRepository;
     private final RedisTemplate<String, LatestPositionDTO> redisTemplate;
@@ -37,7 +40,20 @@ public class TelemetryService {
 
         TelemetryEvent saved = telemetryRepository.save(event);
 
-        // 3. Update latest position in Redis
+        // 3. Check for speeding and save alert if exceeded
+        if (request.getSpeedKmh() > vehicle.getSpeedThresholdKmh()) {
+            SpeedAlert alert = SpeedAlert.builder()
+                    .vehicle(vehicle)
+                    .speedKmh(request.getSpeedKmh())
+                    .thresholdKmh(vehicle.getSpeedThresholdKmh())
+                    .latitude(request.getLatitude())
+                    .longitude(request.getLongitude())
+                    .recordedAt(request.getRecordedAt())
+                    .build();
+            speedAlertRepository.save(alert);
+        }
+
+        // 4. Update latest position in Redis
         LatestPositionDTO latestPosition = LatestPositionDTO.builder()
                 .plate(vehicle.getPlate())
                 .latitude(request.getLatitude())
